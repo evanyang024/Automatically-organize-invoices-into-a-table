@@ -1,0 +1,33 @@
+"""
+发票自动处理 - 核心配置模板 (v5)
+=== 项目路径: E:/桌面E/待整理发票 ===
+"""
+
+paths:
+  watch_dir: "input"        # 放入待处理的发票 PDF
+  output_dir: "output"      # Excel 输出目录
+  archive_dir: "archive"    # 归档目录（copy2 复制，不删除原文件）
+
+excel:
+  filename: "发票台账.xlsx"
+  columns:                  # 输出列（按需增减，writer 映射表自动适配）
+    - 货物或服务名称
+    - 价税合计
+    - 开票日期
+
+processing:
+  supported_extensions: [".pdf"]
+  archive_after_process: true       # 归档副本到 archive/
+  skip_duplicates: true             # 按发票号码去重（独立跟踪文件 .processed_invoices.json）
+  auto_start_watch: true
+  rename_enabled: true              # 智能重命名：YYYY-MM-DD-项目-金额.pdf
+
+# 归档格式说明:
+#   YYYY-MM-DD-明细项目-金额合计.pdf
+#   单项目: 2026-04-21-通行费-0.52.pdf
+#   多项目: 2026-05-28-代订机票等2项-803.00.pdf
+#   无法解析时保留原文件名
+
+logging:
+  level: "INFO"
+  log_file: "invoice_processor.log"
