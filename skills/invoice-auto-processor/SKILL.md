@@ -46,23 +46,64 @@ Don't use for:
 
 ## Workflow
 
-### 部署
+### 部署（一次性）
 
-1. 创建项目骨架：`invoice_processor/` + `input/` `output/` `archive/` + `run.py` `config.yaml`
-2. 安装依赖：`pip install pymupdf openpyxl watchdog pyyaml`
-3. 配置 `config.yaml`：监控路径、Excel 列顺序、处理开关
+```bash
+# 1. 克隆仓库
+git clone https://github.com/evanyang024/Automatically-organize-invoices-into-a-table.git
+cd Automatically-organize-invoices-into-a-table
+
+# 2. 安装依赖
+pip install pymupdf openpyxl watchdog pyyaml
+
+# 3. 配置（可选，config.yaml 已有默认值）
+# 完成。程序首次运行会自动创建 input/ output/ archive/ 三个文件夹。
+```
 
 ### 使用
 
-4. 把增值税电子发票 PDF 放入 `input/`
-5. 启动监控：`python run.py`（持续）或 `python run.py --once`（单次）
-6. 自动流水线（**input/ 原文件不动，重命名副本存入 archive/**）：
-   ```
-   提取文本 → 解析字段 → 去重检查 → 写入 Excel → 归档副本到 archive/
-                                    └─ 计算新文件名（不操作原文件）
-   ```
-7. 查看 `output/发票台账.xlsx`
-8. 🔍 **收尾对照**：按发票号码核对 `input/` 和 `archive/` 是否一一对应，报告差异
+**第 1 步：放入发票**
+
+把增值税电子发票 PDF 拖进 `input/` 文件夹。
+
+**第 2 步：运行程序**
+
+```bash
+python run.py --once    # 处理完即退出
+python run.py           # 持续监控，有新发票自动处理
+```
+
+**第 3 步：程序自动完成**
+
+```
+input/ 中 PDF 被逐个处理：
+  ├─ 提取文本 (pymupdf)
+  ├─ 解析字段 (正则匹配)
+  │   ├─ 价税合计 = max(所有 ¥ 金额)
+  │   ├─ 开票日期 = YYYY年MM月DD日
+  │   ├─ 货物名称 = 星号或表格中提取
+  │   └─ 发票号码（去重用）
+  ├─ 智能重命名 (YYYY-MM-DD-项目-金额.pdf)
+  ├─ 去重检查（按发票号码，已处理则跳过台账）
+  ├─ 写入 Excel（只追加，不覆盖旧数据）
+  │   ├─ 价税合计 = 数字类型，可 SUM
+  │   ├─ 开票日期 = MM月DD日（去年份）
+  │   └─ 无边框，多明细合并为一行
+  └─ 归档副本到 archive/（input/ 原文件保留不动）
+```
+
+**第 4 步：查看结果**
+
+打开 `output/发票台账.xlsx`，表头三列：
+
+| 货物或服务名称 | 价税合计 | 开票日期 |
+|------|------|------|
+| 住宿费 | 392.00 | 05月14日 |
+| 铁路客运 | 124.00 | 06月03日 |
+
+**第 5 步：对照检查**
+
+程序自动核对 `input/` 和 `archive/` 按发票号码是否一一对应，如有差异会报告。
 
 ## File Behavior
 
