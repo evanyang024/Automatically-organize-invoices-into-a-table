@@ -27,13 +27,12 @@
 ```bash
 git clone https://github.com/evanyang024/Automatically-organize-invoices-into-a-table.git
 cd Automatically-organize-invoices-into-a-table
-mkdir input output archive
 pip install pymupdf openpyxl watchdog pyyaml
 
-# 放入发票 PDF 到 input/，然后：
+# 放入发票 PDF 到 input/（首次运行自动创建 input/output/archive 三个文件夹）
 python run.py --once
 
-# 或持续监控：
+# 或持续监控，有发票放进去就自动处理：
 python run.py
 ```
 
