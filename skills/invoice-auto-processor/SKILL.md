@@ -117,7 +117,11 @@ Don't use for:
 
 14. **renamer 缺年份导致文件名缺日期** — 日期去年份必须在 writer（写 Excel 时），不能在 parser（提取时）。parser 返回完整 `YYYY年MM月DD日`，renamer 才能拼出 `YYYY-MM-DD-项目-金额.pdf`。若在 parser 层砍年份，归档文件名会丢失日期前缀。
 
+15. **多明细发票拆成多行** — 一张发票多条明细时，台账只写一行：用第一项名称 + "等N项"，金额为价税合计。不拆行，不重复增加数据行。此规则在 `writer.py` 的 `append_invoice_rows` 中实现。
+
 16. **金额存为文本导致 Excel 无法计算** — `writer.py` 写入时转数字：`float(val.replace(",", ""))`，并设 `number_format = '#,##0.00'`。价税合计列可正常求和。
+
+17. **表格有边框** — 用户偏好无边框表格。`writer.py` 不设 `cell.border`，不导入 `Border`/`Side`。
 
 18. **火车票身份证号被误识别为货物名** — 12306 电子客票含身份证号如 `****1819`，标准正则 `*分类*名称` 会匹配到 `****1819` 并提取 `1819` 作为货物名。v7 已加入「铁路电子客票」检测，文本含此特征时跳过标准解析，走 `_parse_train_ticket()` 专用函数。
 
@@ -163,6 +167,10 @@ Don't use for:
 | `references/parser.py` | 发票字段解析 (v6: ¥三级回退 + 竖排 + 星号跨行) |
 | `references/extractor.py` | PDF 文本提取 (pymupdf) |
 | `references/renamer.py` | 智能重命名逻辑 |
+| `references/writer.py` | Excel 写入 (数字类型、无边框、多明细合并) |
+| `references/watcher.py` | 文件夹监控 (动态导入 parser、去重、归档) |
 | `references/config.yaml` | 配置文件模板 (3 列) |
-| `references/excel-lock-handling.py` | 🆕 Excel 锁住时保存+关闭 (pywin32 COM) |
+| `scripts/save_close_excel.py` | Excel 锁住时保存+关闭 (pywin32 COM) |
+
+其他人 clone 仓库后，复制 `skills/invoice-auto-processor/` 到 `~/.hermes/skills/productivity/` 即可使用。
 | `references/encoding-pitfalls.md` | 🆕 MIME 邮件头编码坑点（GB2312/GBK） |
