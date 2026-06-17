@@ -1,26 +1,30 @@
 ---
 name: invoice-auto-processor
-description: "Use when the user needs to auto-process Chinese VAT e-invoice PDFs — extract fields and write to Excel ledger with folder watching, smart renaming, dedup, and archiving."
-version: 5.0.0
+description: "⚠️ 全局触发词：「整理发票」。用户在任何对话中说出「整理发票」四字，立即加载本技能并执行。处理 /Users/yangtao/Desktop/Hermes/发票整理/input/ 中的增值税发票 PDF，提取字段写入 Excel 台账。"
+version: 9.0.0
 author: Hermes Agent
 license: MIT
 metadata:
   hermes:
-    tags: [invoice, ocr, pdf, excel, automation, chinese-vat]
+    tags: [整理发票, invoice, ocr, pdf, excel, automation, chinese-vat]
     related_skills: [skill-creator]
 ---
 
 # 发票自动处理工具 (Invoice Auto Processor)
 
-自动识别中国增值税电子发票 PDF，提取字段并写入 Excel 台账。支持文件夹持续监控、智能重命名、发票去重、自动归档。
+自动识别中国增值税电子发票 PDF、非税收入票据、通行费票据，提取字段并写入 Excel 台账。支持文件夹持续监控、智能重命名、发票去重、自动归档。
 
 ## Overview
 
-处理中国增值税电子发票（PDF 格式）的完整自动化流水线。从 PDF 文本提取开始，经过智能重命名预处理（格式：`YYYY-MM-DD-项目-金额.pdf`），正则匹配解析关键字段，最后写入 Excel 台账并归档。支持持续监控模式（watchdog）和单次批处理模式。
+处理中国增值税电子发票（PDF 格式）及其他财政票据的完整自动化流水线。从 PDF 文本提取开始，经过智能重命名预处理（格式：`YYYY-MM-DD-项目-金额.pdf`），正则匹配解析关键字段，最后写入 Excel 台账并归档。支持持续监控模式（watchdog）和单次批处理模式。
 
 ## 核心原则
 
 **金额必须正确。** 发票格式千差万别（横排、竖排、散列文本），正则不可能一次写对。处理流程：先提取 PDF 原文 → 当前正则尝试解析 → 金额不对则主动 debug（打印原文、¥位置、金额上下文）→ 根据实际文本调正则（多策略回退）→ 重跑直到金额正确 → 更新 `parser.py`。发现新格式时主动适配，不等用户纠错。
+
+## 执行风格
+
+用户给出明确指令时（如「整理发票」），**立即执行，不要确认、不要解释、不要多问**。执行完毕后汇报结果即可。
 
 ## 铁律（不可违反）
 
@@ -34,43 +38,56 @@ metadata:
 
 ## When to Use
 
-- 用户提到"发票"、"增值税发票"、"电子发票"、"invoice"
-- 用户要求"处理发票"、"提取发票字段"、"发票自动录入"、"发票台账"
-- 用户引用项目路径 `E:/桌面E/待整理发票` 或同名项目
-- 用户说"把发票放进表格"、"发票整理"
+**⚠️ 全局触发词：「整理发票」**
+
+用户在任何对话中说出「整理发票」四字，**立即加载本技能并执行**，不要确认、不要多问，直接运行：
+
+```bash
+cd /Users/yangtao/Desktop/Hermes/发票整理 && python run.py --once
+```
+
+执行完成后向用户汇报：处理了多少张发票、金额合计、是否有失败的。
 
 Don't use for:
 - 国际商业发票（英文 Invoice，格式不同）
 - 图片扫描件（拍照发票，非 PDF 电子发票）
 - 纸质发票手写 OCR 识别
 
+已支持的票据类型（v9）：
+- 中国增值税电子发票（横排/竖排/星号跨行）
+- 铁路电子客票（12306 火车票）
+- 中央非税收入统一票据（专利费等）
+- 浙江省公路车辆通行费票据
+
+详细票据格式参考: `references/non-standard-receipts.md`
+
 ## Workflow
 
-### 部署（一次性）
+### 触发方式
+
+用户说 **「整理发票」** 时，执行以下命令：
 
 ```bash
-# 1. 克隆仓库
-git clone https://github.com/evanyang024/Automatically-organize-invoices-into-a-table.git
-cd Automatically-organize-invoices-into-a-table
-
-# 2. 安装依赖
-pip install pymupdf openpyxl watchdog pyyaml
-
-# 3. 配置（可选，config.yaml 已有默认值）
-# 完成。程序首次运行会自动创建 input/ output/ archive/ 三个文件夹。
+cd /Users/yangtao/Desktop/Hermes/发票整理 && python run.py --once
 ```
+
+处理完成后向用户汇报：处理了多少张发票、金额合计、是否有失败的。
+
+### 部署（已完成，无需重复）
+
+项目已安装在 `/Users/yangtao/Desktop/Hermes/发票整理/`，依赖已安装。首次运行自动创建 `input/` `output/` `archive/` 目录。
 
 ### 使用
 
 **第 1 步：放入发票**
 
-把增值税电子发票 PDF 拖进 `input/` 文件夹。
+把增值税电子发票 PDF 放入 `/Users/yangtao/Desktop/Hermes/发票整理/input/` 文件夹。
 
 **第 2 步：运行程序**
 
 ```bash
-python run.py --once    # 处理完即退出
-python run.py           # 持续监控，有新发票自动处理
+cd /Users/yangtao/Desktop/Hermes/发票整理 && python run.py --once    # 处理完即退出（推荐，对话触发用这个）
+cd /Users/yangtao/Desktop/Hermes/发票整理 && python run.py           # 持续监控，有新发票自动处理
 ```
 
 **第 3 步：程序自动完成**
@@ -84,7 +101,7 @@ input/ 中 PDF 被逐个处理：
   │   ├─ 货物名称 = 星号或表格中提取
   │   └─ 发票号码（去重用）
   ├─ 智能重命名 (YYYY-MM-DD-项目-金额.pdf)
-  ├─ 去重检查（按发票号码，已处理则跳过台账）
+  ├─ 去重检查（按发票号码，已处理则跳过台账和归档）
   ├─ 写入 Excel（只追加，不覆盖旧数据）
   │   ├─ 价税合计 = 数字类型，可 SUM
   │   ├─ 开票日期 = MM月DD日（去年份）
@@ -108,7 +125,7 @@ input/ 中 PDF 被逐个处理：
 ## File Behavior
 
 - **`input/`**: 原始文件保留不动，不会被删除或移动
-- **`archive/`**: 以智能重命名后的文件名存入副本。即使去重跳过了台账写入（发票号已存在），仍会归档到 archive/
+- **`archive/`**: 以智能重命名后的文件名存入副本。重复发票（按发票号码检测）既不写台账也不归档，避免 archive 产生带时间戳后缀的冗余副本
 - **`output/`**: Excel 台账（只追加不覆盖）+ `.processed_invoices.json`（去重跟踪）
 
 ```
@@ -151,35 +168,34 @@ input/ 中 PDF 被逐个处理：
 8. **修改前必须告知用户** — 解析器改动方案先用 `clarify` 告知：(1)改什么 (2)为什么 (3)影响哪些已成功发票 (4)预估后果。用户同意后才执行。
 9. **模块缓存导致修改不生效** — `watcher.py` 在模块顶层 `from .parser import parse_invoice`，修改 `parser.py` 后必须重启进程（子进程或清缓存）才能生效。在同一个 Python 进程中反复 import 不会更新。
 10. **Excel 文件被锁导致追加而非重建** — 运行时如果 Excel 正被打开，`output/发票台账.xlsx` 无法被写入。此时用 `pywin32` COM 自动化：连接 Excel → 找到台账 → 保存 → 关闭 Excel → 再跑程序。**禁止 `taskkill /F`**（会丢失用户的修改）。pywin32 已安装可用。
-
 11. **watcher 静态导入导致 parser 更新不生效** — `watcher.py` 中 `from .parser import parse_invoice` 在模块加载时绑定函数引用，即使重载 parser 模块，watcher 中的旧引用仍指向旧函数。修复：改为 `from . import parser as _parser`，调用 `_parser.parse_invoice()` 实现动态查找。
-
-13. **¥ 独立成行导致金额为空** — 部分发票 ¥ 符号独占一行，数字在别处（如通信费发票）。v6 已加入三级回退：同行¥ → 跨行¥ → (小写)附近 → 最大数字。遇此格式自动适配，不必重写解析器。
-
-14. **renamer 缺年份导致文件名缺日期** — 日期去年份必须在 writer（写 Excel 时），不能在 parser（提取时）。parser 返回完整 `YYYY年MM月DD日`，renamer 才能拼出 `YYYY-MM-DD-项目-金额.pdf`。若在 parser 层砍年份，归档文件名会丢失日期前缀。
-
-15. **多明细发票拆成多行** — 一张发票多条明细时，台账只写一行：用第一项名称 + "等N项"，金额为价税合计。不拆行，不重复增加数据行。此规则在 `writer.py` 的 `append_invoice_rows` 中实现。
-
-16. **金额存为文本导致 Excel 无法计算** — `writer.py` 写入时转数字：`float(val.replace(",", ""))`，并设 `number_format = '#,##0.00'`。价税合计列可正常求和。
-
-17. **表格有边框** — 用户偏好无边框表格。`writer.py` 不设 `cell.border`，不导入 `Border`/`Side`。
-
-18. **火车票身份证号被误识别为货物名** — 12306 电子客票含身份证号如 `****1819`，标准正则 `*分类*名称` 会匹配到 `****1819` 并提取 `1819` 作为货物名。v7 已加入「铁路电子客票」检测，文本含此特征时跳过标准解析，走 `_parse_train_ticket()` 专用函数。
-
-19. **火车票乘车日期≠开票日期** — 12306 票面有乘车日期（如 `2025年12月07日`）和开票日期（`开票日期:2026年06月03日`）两个日期。`_parse_train_ticket` 明确提取「开票日期」字段，避免取到乘车日期。
-
-20. **MIME 邮件头编码不统一** — 如果未来从邮件下载发票附件，邮件主题可能用 GB2312/GBK 编码（如 `=?gb2312?B?...?=`）。`email.header.decode_header()` 返回 `(bytes, charset)` 元组，必须按声明的 charset 解码，不能用 UTF-8 强解。`safe_decode_header()` 模式可参考 `references/encoding-pitfalls.md`。
-
-21. **⚠️ patch 工具会双重转义反斜杠** — 用 `patch` 工具编辑包含大量 `\d` `\s` `\n` 等正则的 Python 文件时，反斜杠可能被二次转义（`\d` → `\\d`），导致正则失效。症状：函数逻辑正确但正则全不匹配。修复：改用 `execute_code` 直接读写文件，或用 `write_file` 重写整个文件。
+12. **¥ 独立成行导致金额为空** — 部分发票 ¥ 符号独占一行，数字在别处（如通信费发票）。v6 已加入三级回退：同行¥ → 跨行¥ → (小写)附近 → 最大数字。遇此格式自动适配，不必重写解析器。
+13. **renamer 缺年份导致文件名缺日期** — 日期去年份必须在 writer（写 Excel 时），不能在 parser（提取时）。parser 返回完整 `YYYY年MM月DD日`，renamer 才能拼出 `YYYY-MM-DD-项目-金额.pdf`。若在 parser 层砍年份，归档文件名会丢失日期前缀。
+14. **多明细发票拆成多行** — 一张发票多条明细时，台账只写一行：用第一项名称 + "等N项"，金额为价税合计。不拆行，不重复增加数据行。此规则在 `writer.py` 的 `append_invoice_rows` 中实现。
+15. **金额存为文本导致 Excel 无法计算** — `writer.py` 写入时转数字：`float(val.replace(",", ""))`，并设 `number_format = '#,##0.00'`。价税合计列可正常求和。
+16. **表格有边框** — 用户偏好无边框表格。`writer.py` 不设 `cell.border`，不导入 `Border`/`Side`。
+17. **火车票身份证号被误识别为货物名** — 12306 电子客票含身份证号如 `****1819`，标准正则 `*分类*名称` 会匹配到 `****1819` 并提取 `1819` 作为货物名。v7 已加入「铁路电子客票」检测，文本含此特征时跳过标准解析，走 `_parse_train_ticket()` 专用函数。
+18. **火车票乘车日期≠开票日期** — 12306 票面有乘车日期（如 `2025年12月07日`）和开票日期（`开票日期:2026年06月03日`）两个日期。`_parse_train_ticket` 明确提取「开票日期」字段，避免取到乘车日期。
+19. **MIME 邮件头编码不统一** — 如果未来从邮件下载发票附件，邮件主题可能用 GB2312/GBK 编码（如 `=?gb2312?B?...?=`）。`email.header.decode_header()` 返回 `(bytes, charset)` 元组，必须按声明的 charset 解码，不能用 UTF-8 强解。`safe_decode_header()` 模式可参考 `references/encoding-pitfalls.md`。
+20. **config.yaml 顶部出现 Python 三引号 `"""` 导致 YAML 解析失败** — 从仓库下载的 config.yaml 可能包含 Python 风格的 docstring（`"""` 开头和结尾），YAML 解析器会报 `expected '<document start>', but found '<scalar>'`。修复：删除 `"""` 行，改用 `#` 注释。
+21. **patch 工具会双重转义反斜杠** — 用 `patch` 工具编辑包含大量 `\\d` `\\s` `\\n` 等正则的 Python 文件时，反斜杠可能被二次转义（`\\d` → `\\\\d`），导致正则失效。症状：函数逻辑正确但正则全不匹配。修复：改用 `execute_code` 直接读写文件，或用 `write_file` 重写整个文件。
+22. **非税收入票据（专利费等）格式完全不同** — 中央非税收入统一票据的字段结构与增值税发票差异极大：(1) 字段名是「票据号码」而非「发票号码」(2) 日期格式是 `YYYY-MM-DD` 而非 `YYYY年MM月DD日` (3) 项目名称没有星号标记，在「项目编码\n项目名称」表格标题后的数据行中 (4) 金额字段靠「金额合计（大写）」大写金额前面的数字行提取，不能取最大数字（会取到标准/单价字段）。解析顺序：先找「（小写）」→ 再找大写金额前面最近的小数行 → 最后兜底最大数字。
+23. **通行费票据（浙江省公路车辆通行费）** — 字段名是「票据号码：数字」同行格式，日期是 `YYYY-MM-DD`，项目名称在「项目编码\n项目名称\n单位...」标题行后面的数据行中（格式：`50012405\n车辆通行费`）。正则 `(?:^|\n)(\d{6,})\s*\n\s*([\u4e00-\u9fa5]+)` 匹配独立数字行后的中文，避免匹配到「票据代码：33021026\n票据号码」这种标签行。
+24. **非税收入票据票据号码在标签后面很远** — 「票据号码：」标签后面可能是空的，实际数字（如 0026237068）在文本后面几十行。解析时遍历标签后面所有行，找 10 位以上纯数字行（排除 8 位票据代码）。
+| 25 | **用户清空 Excel 数据后新发票不写入** — 用户会定期清空台账数据行（保留表头），但 `.processed_invoices.json` 中的去重记录还在，导致所有发票被跳过。writer.py 原先用 `ws.max_row + 1` 定位写入行，清空数据后 max_row 不变，新数据写到远旧行后面。v8 修复：`_find_empty_row()` 从第2行开始扫描第一个所有列都为空的行。清空 Excel 数据后，**必须同时删除** `output/.processed_invoices.json` 去重记录，否则发票仍被跳过。|
+| 26 | **archive 重复文件** — 多次运行 `run.py --once` 会在 archive/ 产生带时间戳后缀的副本（如 `_1781580049.pdf`），因为 `_archive_file` 在目标已存在时追加 `_{int(time.time())}`。v9 修复：`watcher.py` 中检测到重复发票时同时跳过台账写入**和**归档（删除了归档分支），日志改为"跳过台账写入和归档"。如 archive/ 中已有历史重复文件，用 `find . -name "*_*.pdf" -type f -delete` 清理。|
+| 27 | **项目名称含括号和英文需清理** — 发票原文的项目名称经常混入无用信息，parser.py 在 `_parse_items` 返回前统一清理，执行顺序不可调换：**(1)** `re.sub(r'\*', '', name)` 去掉星号（如 `*供电*扫码充电-` → `供电扫码充电-`，原文可能有双层星号 `*供电**供电*`） **(2)** `re.split(r'[（(]', name)[0]` 去掉中英文括号及后面内容（如 `95号车用汽油(ⅥB` → `95号车用汽油`） **(3)** 关键词截断（`_TRUNCATE_KEYWORDS = ['沪房地', '不动产权', '产权证书', '规格型号', '单位']`），遇到关键词截断到其前面（如 `车辆停放沪房地` → `车辆停放`，不动产发票的产权证号混入名称） **(4)** 去末尾"无"字（如 `车辆停放无` → `车辆停放`，不动产发票中"无"表示无产权证号） **(5)** 非税收入票据项目名去掉前缀数字编码，正则改为 `(?:\d+\s*)((?:发明|实用新型|外观设计)专利[^\n]*)` 只捕获专利类型后面的文本（如 `056990124020 发明专利第2年年费` → `发明专利第2年年费`）。详细清理规则参考: `references/project-name-cleanup.md`。|
 
 ## Parser Evolution Summary
 
 | 版本 | 解决的问题 | 关键规则 |
 |------|-----------|----------|
 | v1-v2 | 横排标准发票 | 字段名值同行 |
-| v3-v4 | 竖排散列文本、星号跨行 | `\s*` 跨行匹配 |
+| v3-v4 | 竖排散列文本、星号跨行 | `\\s*` 跨行匹配 |
 | v5-v6 | ¥独立成行（金额在别处）、三级回退 | ¥同行→¥跨行→(小写)→最大数字 |
 | v7 | 铁路电子客票（12306 火车票） | 检测「铁路电子客票」→专用解析函数，项目名固定「铁路客运」，开票日期≠乘车日期 |
+| v8 | 非税收入票据 + 浙江通行费票据 + 项目名清理 | 「票据号码」支持、「YYYY-MM-DD」日期、表格项目名提取、金额取大写前面数字、5步项目名清理（去星号→去括号→关键词截断→去"无"→去数字前缀） |
+| v9 | 重复发票跳过归档 | 检测到重复发票时同时跳过台账写入和归档，避免archive产生带时间戳后缀的冗余副本 |
 | 铁律 | 不删原文件、不改旧数据、改动前告知、回测全量 | 记入 .processed_invoices.json 去重 |
 
 ### 金额规则（v5 核心）
@@ -197,21 +213,24 @@ input/ 中 PDF 被逐个处理：
 - [ ] 金额验证：抽检 2-3 张，确认价税合计 = max(¥金额)
 - [ ] input/ 原文件不动：处理后原文件仍在
 - [ ] archive/ 重命名格式：`YYYY-MM-DD-项目-金额.pdf`
+- [ ] archive/ 文件数 = input/ 新发票数（重复发票不归档）
 - [ ] 去重验证：同号发票第二次跳过
 - [ ] 回测全量已成功发票
 - [ ] 🔍 input/ ↔ archive/ 按发票号码一一对照，报告差异
+- [ ] 用户清空 Excel 数据后重跑：必须同时删除 `.processed_invoices.json`
 
 ## Supporting Files
 
 | 文件 | 内容 |
 |------|------|
-| `references/parser.py` | 发票字段解析 (v6: ¥三级回退 + 竖排 + 星号跨行) |
+| `references/run.py` | 主入口脚本（argparse + config 加载 + 目录创建） |
+| `references/parser.py` | 发票字段解析 (v9: ¥三级回退 + 竖排 + 星号跨行 + 铁路客票 + 非税收入 + 通行费 + 重复发票跳过归档) |
 | `references/extractor.py` | PDF 文本提取 (pymupdf) |
 | `references/renamer.py` | 智能重命名逻辑 |
-| `references/writer.py` | Excel 写入 (数字类型、无边框、多明细合并) |
+| `references/writer.py` | Excel 写入 (数字类型、无边框、多明细合并、空行检测) |
 | `references/watcher.py` | 文件夹监控 (动态导入 parser、去重、归档) |
 | `references/config.yaml` | 配置文件模板 (3 列) |
+| `references/encoding-pitfalls.md` | MIME 邮件头编码坑点（GB2312/GBK） |
+| `references/non-standard-receipts.md` | 非税收入票据和通行费票据的文本结构（逐行分析） |
+| `references/project-name-cleanup.md` | 项目名称清理规则详解（星号、括号、关键词截断、去"无"、去数字前缀） |
 | `scripts/save_close_excel.py` | Excel 锁住时保存+关闭 (pywin32 COM) |
-
-其他人 clone 仓库后，复制 `skills/invoice-auto-processor/` 到 `~/.hermes/skills/productivity/` 即可使用。
-| `references/encoding-pitfalls.md` | 🆕 MIME 邮件头编码坑点（GB2312/GBK） |

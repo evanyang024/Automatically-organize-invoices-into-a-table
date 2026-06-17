@@ -56,9 +56,7 @@ class InvoiceHandler(FileSystemEventHandler):
             if self.skip_duplicates and invoice_no:
                 existing = get_processed_invoice_numbers(self.output_dir)
                 if invoice_no in existing:
-                    logger.warning(f"[{filename}] 发票号码 {invoice_no} 已处理过，跳过台账写入")
-                    if self.archive:
-                        self._archive_file(filepath, new_filename)
+                    logger.warning(f"[{filename}] 发票号码 {invoice_no} 已处理过，跳过台账写入和归档")
                     return
             # 5. 写入 Excel
             append_invoice_rows(output_path, self.columns, invoice_data)
