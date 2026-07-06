@@ -1,7 +1,7 @@
 ---
 name: invoice-auto-processor
 description: "⚠️ 全局触发词：「整理发票」。用户在任何对话中说出「整理发票」四字，立即加载本技能并执行。处理 /Users/yangtao/Desktop/Hermes/发票整理/input/ 中的增值税发票 PDF，提取字段写入 Excel 台账。"
-version: 10.0.5
+version: 10.0.6
 author: Hermes Agent
 license: MIT
 metadata:
