@@ -1,7 +1,7 @@
 ---
 name: invoice-auto-processor
 description: "⚠️ 全局触发词：「整理发票」。用户在任何对话中说出「整理发票」四字，立即加载本技能并执行。处理 /Users/yangtao/Desktop/Hermes/发票整理/input/ 中的增值税发票 PDF，提取字段写入 Excel 台账。"
-version: 10.0.1
+version: 10.0.2
 author: Hermes Agent
 license: MIT
 metadata:
@@ -230,7 +230,7 @@ input/ 中 PDF 被逐个处理：
 | 文件 | 内容 |
 |------|------|
 | `references/run.py` | 主入口脚本（argparse + config 加载 + 目录创建） |
-| `references/parser.py` | 发票字段解析 (v11: ¥三级回退 + 铁路客票 + 非税收入 + 通行费 + 身份证掩码过滤 + 加油费统一) |
+| `references/parser.py` | 发票字段解析 (v10.0.1: ¥三级回退 + 竖排 + 星号跨行 + 铁路客票专用解析 + 非税收入 + 通行费 + 身份证号掩码过滤 + 加油费统一命名) |
 | `references/extractor.py` | PDF 文本提取 (pymupdf) |
 | `references/renamer.py` | 智能重命名逻辑 |
 | `references/writer.py` | Excel 写入 (数字类型、无边框、多明细合并、空行检测) |
